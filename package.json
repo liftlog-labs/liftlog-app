@@ -1,0 +1,48 @@
+{
+  "name": "liftlog",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "dependencies": {
+    "@expo/metro-runtime": "~58.0.17",
+    "@expo/vector-icons": "^15.0.2",
+    "babel-preset-expo": "~58.0.0",
+    "expo": "~58.0.26",
+    "expo-constants": "~58.0.15",
+    "expo-dev-client": "~58.0.21",
+    "expo-document-picker": "~58.0.5",
+    "expo-file-system": "~58.0.13",
+    "expo-font": "~58.0.12",
+    "expo-linking": "~58.0.17",
+    "expo-network": "~58.0.5",
+    "expo-router": "~58.0.32",
+    "expo-secure-store": "~58.0.3",
+    "expo-sharing": "~58.0.23",
+    "expo-sqlite": "~58.0.18",
+    "expo-status-bar": "~58.0.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-safe-area-context": "~5.11.1",
+    "react-native-screens": "~4.30.1",
+    "react-native-web": "^0.21.4"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/react": "~19.3.0",
+    "better-sqlite3": "^13.0.3",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~58.0.4",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "test": "tsx --test src/modules/workout.test.ts src/modules/chat.test.ts src/modules/personalContext.test.ts src/modules/accountSession.test.ts src/modules/syncFoundation.test.ts src/modules/mobileSync.test.ts src/modules/security.test.ts src/modules/accountDeletion.test.ts src/modules/aiConsent.test.ts src/modules/coaching.test.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "expo lint"
+  },
+  "private": true
+}

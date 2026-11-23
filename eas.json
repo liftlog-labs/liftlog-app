@@ -1,0 +1,28 @@
+{
+  "build": {
+    "pilot": {
+      "distribution": "internal",
+      "developmentClient": false,
+      "environment": "preview",
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "env": {
+        "LIFTLOG_REQUIRE_PILOT_ORIGIN": "1",
+        "EXPO_NO_DOTENV": "1"
+      }
+    },
+    "testflight": {
+      "distribution": "store",
+      "developmentClient": false,
+      "environment": "production",
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "env": {
+        "LIFTLOG_REQUIRE_PILOT_ORIGIN": "1",
+        "EXPO_NO_DOTENV": "1"
+      }
+    }
+  }
+}
