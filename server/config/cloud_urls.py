@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from django.conf import settings
 from django.core.cache import cache
 from django.http import JsonResponse
 from django.urls import path
@@ -7,7 +8,7 @@ from django.views.decorators.http import require_safe
 from redis.exceptions import RedisError
 from django.db.utils import DatabaseError
 
-from accounts.models import AuthSession
+from accounts.models import AuthSession, LoginAttemptBucket
 from chat.coaching_context import CoachingContextError, run_context
 from config.dev_https_urls import ALLOWED_PATHS
 from config.urls import urlpatterns as shared_patterns
@@ -34,7 +35,10 @@ def check_bridge():
 def ready(request):
     try:
         AuthSession.objects.exists()
-        cache.get("readiness")
+        if settings.LIFTLOG_POSTGRES_LOGIN_LIMIT:
+            LoginAttemptBucket.objects.exists()
+        else:
+            cache.get("readiness")
         check_bridge()
     except (DatabaseError, RedisError, CoachingContextError):
         return JsonResponse({"status": "unavailable"}, status=503)

@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: liftlog-free-pilot
+    runtime: docker
+    plan: free
+    region: virginia
+    branch: main
+    autoDeployTrigger: "off"
+    dockerfilePath: ./deploy/Dockerfile
+    dockerContext: .
+    healthCheckPath: /readyz
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.cloud_settings
+      - key: LIFTLOG_ENV
+        value: staging
+      - key: LIFTLOG_DATABASE_MODE
+        value: supabase
+      - key: CHAT_PROVIDER
+        value: fake
+      - key: LIFTLOG_DATABASE_ROOT_CERT
+        value: /app/server/certs/supabase-ca.crt
+      - key: DJANGO_ALLOWED_HOSTS
+        sync: false
+      - key: DJANGO_SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false

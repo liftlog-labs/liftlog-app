@@ -41,16 +41,29 @@ CSRF_COOKIE_SECURE = True
 X_FRAME_OPTIONS = "DENY"
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
-DATABASES = {"default": postgres_database(required("DATABASE_URL"), sslmode="require")}
-_cache_url = required("REDIS_URL")
-if urlsplit(_cache_url).scheme not in {"redis", "rediss"} or not urlsplit(_cache_url).hostname:
-    raise ImproperlyConfigured("Set the private Redis-compatible URL.")
-CACHES = {"default": {
-    "BACKEND": "django.core.cache.backends.redis.RedisCache",
-    "LOCATION": _cache_url,
-    "KEY_PREFIX": f"liftlog-{ENVIRONMENT}",
-    "OPTIONS": {"socket_connect_timeout": 2, "socket_timeout": 2},
-}}
+_database_mode = os.environ.get("LIFTLOG_DATABASE_MODE", "postgres")
+if _database_mode not in {"postgres", "supabase"}:
+    raise ImproperlyConfigured("LIFTLOG_DATABASE_MODE must be postgres or supabase.")
+LIFTLOG_POSTGRES_LOGIN_LIMIT = _database_mode == "supabase"
+if LIFTLOG_POSTGRES_LOGIN_LIMIT:
+    _root_cert = required("LIFTLOG_DATABASE_ROOT_CERT")
+    if not os.path.isfile(_root_cert):
+        raise ImproperlyConfigured("The Supabase public CA certificate file must exist.")
+    _db = postgres_database(required("DATABASE_URL"), sslmode="verify-full")
+    _db["OPTIONS"].update(sslrootcert=_root_cert, prepare_threshold=None)
+    _db.update(CONN_MAX_AGE=0, DISABLE_SERVER_SIDE_CURSORS=True)
+    DATABASES = {"default": _db}
+else:
+    DATABASES = {"default": postgres_database(required("DATABASE_URL"), sslmode="require")}
+    _cache_url = required("REDIS_URL")
+    if urlsplit(_cache_url).scheme not in {"redis", "rediss"} or not urlsplit(_cache_url).hostname:
+        raise ImproperlyConfigured("Set the private Redis-compatible URL.")
+    CACHES = {"default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": _cache_url,
+        "KEY_PREFIX": f"liftlog-{ENVIRONMENT}",
+        "OPTIONS": {"socket_connect_timeout": 2, "socket_timeout": 2},
+    }}
 MIDDLEWARE = [
     "config.dev_https_middleware.ExactHostMiddleware",
     *[item for item in MIDDLEWARE if item != "accounts.limits.RegistrationAttemptLimit"],  # noqa: F405

@@ -3,15 +3,17 @@ import logging
 import secrets
 from datetime import timedelta
 
+from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.db import IntegrityError, transaction
+from django.db import DatabaseError, IntegrityError, transaction
 from django.utils import timezone
 
+from accounts.login_budget import reserve_login_attempt
 from accounts.models import AccountProfile, AuthSession
 
 logger = logging.getLogger(__name__)
@@ -75,9 +77,7 @@ def login(data, ip: str) -> dict:
     _require_mapping(data, {"email", "password"})
     email = _normalize_email(data.get("email"))
     password = _require_password(data.get("password"))
-    if _locked(email, ip):
-        logger.info("login_rate_limited")
-        raise AccountError("RATE_LIMITED", 429)
+    shared = _check_password_budget(email, ip)
     user = User.objects.filter(username=email, is_active=True).first()
     if user is None:
         check_password(password, _dummy_hash())
@@ -85,10 +85,12 @@ def login(data, ip: str) -> dict:
     else:
         matched = user.check_password(password)
     if not matched:
-        _record_failure(email, ip)
+        if not shared:
+            _record_failure(email, ip)
         logger.info("login_failed")
         raise AccountError("INVALID_CREDENTIALS", 401)
-    cache.delete(_email_key(email))
+    if not shared:
+        cache.delete(_email_key(email))
     logger.info("login_succeeded")
     return _session_body(user, user.account_profile)
 
@@ -98,14 +100,14 @@ def delete_account(user, data, ip: str) -> dict:
     if data.get("confirm") is not True:
         raise AccountError("INVALID_INPUT", 400)
     password = _require_password(data.get("password"))
-    if _locked(user.email, ip):
-        logger.info("account_delete_rate_limited")
-        raise AccountError("RATE_LIMITED", 429)
+    shared = _check_password_budget(user.email, ip)
     if not user.check_password(password):
-        _record_failure(user.email, ip)
+        if not shared:
+            _record_failure(user.email, ip)
         logger.info("account_delete_rejected")
         raise AccountError("INVALID_CREDENTIALS", 401)
-    cache.delete(_email_key(user.email))
+    if not shared:
+        cache.delete(_email_key(user.email))
     from records.service import SyncError, erase_account
 
     try:
@@ -232,6 +234,25 @@ def _email_key(email: str) -> str:
 
 def _ip_key(ip: str) -> str:
     return f"login-fail-ip:{ip or 'unknown'}"
+
+
+def _check_password_budget(email: str, ip: str) -> bool:
+    shared = getattr(settings, "LIFTLOG_POSTGRES_LOGIN_LIMIT", False)
+    if shared:
+        try:
+            allowed = reserve_login_attempt(
+                email, window_seconds=FAILURE_WINDOW_SECONDS,
+                identity_limit=EMAIL_FAILURE_LIMIT, shared_limit=IP_FAILURE_LIMIT,
+            )
+        except DatabaseError:
+            logger.warning("login_budget_unavailable")
+            raise AccountError("UNAVAILABLE", 503) from None
+    else:
+        allowed = not _locked(email, ip)
+    if not allowed:
+        logger.info("login_rate_limited")
+        raise AccountError("RATE_LIMITED", 429)
+    return shared
 
 
 def _locked(email: str, ip: str) -> bool:

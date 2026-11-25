@@ -41,3 +41,10 @@ class CoachingRateBucket(models.Model):
     """Fixed-window budgets shared by every worker using the application DB."""
     key = models.CharField(max_length=120, primary_key=True)
     count = models.PositiveIntegerField(default=0)
+
+
+class LoginAttemptBucket(models.Model):
+    """Short-lived, shared password verification budget."""
+    key = models.CharField(max_length=100, primary_key=True)
+    window_id = models.BigIntegerField(db_index=True)
+    count = models.PositiveIntegerField()

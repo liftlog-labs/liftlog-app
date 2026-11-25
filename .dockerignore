@@ -4,6 +4,8 @@
 !deploy/requirements.lock
 !server/
 !server/manage.py
+!server/certs/
+!server/certs/supabase-ca.crt
 !server/accounts/
 !server/accounts/**/
 !server/accounts/**/*.py
@@ -29,3 +31,7 @@
 !src/modules/personalContextCore.ts
 **/tests/
 **/tests/**
+server/chat/groq_smoke.py
+server/config/dev_https_settings.py
+server/config/postgres_test_settings.py
+server/config/sync_test_settings.py
